@@ -1,29 +1,42 @@
 import { Keypair, PublicKey, Connection, Commitment } from "@solana/web3.js";
 import { getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
-import wallet from "../wba-wallet.json"
+import wallet from "../wba-wallet.json";
 
 // Import our keypair from the wallet file
 const keypair = Keypair.fromSecretKey(new Uint8Array(wallet));
 
-//Create a Solana devnet connection
+// Create a Solana devnet connection
 const commitment: Commitment = "confirmed";
 const connection = new Connection("https://api.devnet.solana.com", commitment);
 
-const token_decimals = 1_000_000n;
+// Mint address (replace with your actual mint address)
+const mint = new PublicKey("GjLjoM1PSBgDeqXPVDTadWGMQF57wiydatwEtZYHzghy");
 
-// Mint address
-const mint = new PublicKey("<mint address>");
+// Amount to mint (in the smallest unit; for 1 million with 6 decimals, it would be 1_000_000)
+const amountToMint = (1000000*100000)-1000000; 
 
 (async () => {
     try {
-        // Create an ATA
-        // const ata = ???
-        // console.log(`Your ata is: ${ata.address.toBase58()}`);
+        // Create an associated token account for your wallet
+        const ata = await getOrCreateAssociatedTokenAccount(
+            connection,
+            keypair,
+            mint,
+            keypair.publicKey // Your wallet address
+        );
+        console.log(`Your ATA is: ${ata.address.toBase58()}`);
 
-        // Mint to ATA
-        // const mintTx = ???
-        // console.log(`Your mint txid: ${mintTx}`);
-    } catch(error) {
-        console.log(`Oops, something went wrong: ${error}`)
+        // Mint tokens to your associated token account
+        const mintTx = await mintTo(
+            connection,
+            keypair,
+            mint,
+            ata.address, // The ATA address where tokens will be minted
+            keypair,     // The authority to mint tokens
+            amountToMint // Amount to mint (in the smallest unit)
+        );
+        console.log(`Your mint txid: ${mintTx}`);
+    } catch (error) {
+        console.log(`Oops, something went wrong: ${error}`);
     }
-})()
+})();
